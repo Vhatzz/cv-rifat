@@ -20,24 +20,24 @@ class AdminController extends Controller
             'education' => Education::count(),
             'certificates' => Certificate::count(),
         ];
-        
+
         return view('admin.dashboard', compact('stats'));
     }
 
-    // Profile Management
+    // ==============================
+    // PROFILE MANAGEMENT
+    // ==============================
     public function profile()
     {
         $profile = Profile::first();
-        if (!$profile) {
-            $profile = new Profile();
-        }
+        if (!$profile) $profile = new Profile();
         return view('admin.profile', compact('profile'));
     }
 
     public function updateProfile(Request $request)
     {
         $profile = Profile::firstOrNew([]);
-        
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'domicile' => 'required|string|max:255',
@@ -52,29 +52,36 @@ class AdminController extends Controller
         $profile->fill($validated);
         $profile->save();
 
-        return redirect()->route('admin.profile')->with('success', 'Profile updated successfully!');
+        return back()->with('success', 'Profile updated successfully!');
     }
 
     public function updateProfilePhoto(Request $request)
     {
         $request->validate([
-            'photo' => 'required|image|mimes:jpeg,png,jpg|max:2048'
+            'photo' => 'required|image|mimes:jpg,jpeg,png|max:2048'
         ]);
 
-        $profile = Profile::firstOrNew([]);
-        
-        if ($profile->photo) {
+        $profile = Profile::firstOrCreate([]);
+
+        // Hapus gambar lama jika ada
+        if ($profile->photo && Storage::disk('public')->exists($profile->photo)) {
             Storage::disk('public')->delete($profile->photo);
         }
 
-        $path = $request->file('photo')->store('profile', 'public');
+        // Simpan foto baru dengan nama unik
+        $filename = 'profile-' . time() . '.' . $request->file('photo')->getClientOriginalExtension();
+        $path = $request->file('photo')->storeAs('profile', $filename, 'public');
+        
         $profile->photo = $path;
         $profile->save();
 
-        return back()->with('success', 'Profile photo updated successfully!');
+        return redirect()->back()->with('success', 'Foto profil berhasil diperbarui!');
     }
 
-    // Skills CRUD
+
+    // ==============================
+    // SKILLS CRUD
+    // ==============================
     public function skillsIndex()
     {
         $skills = Skill::all();
@@ -96,7 +103,6 @@ class AdminController extends Controller
         ]);
 
         Skill::create($validated);
-
         return redirect()->route('admin.skills.index')->with('success', 'Skill created successfully!');
     }
 
@@ -115,7 +121,6 @@ class AdminController extends Controller
         ]);
 
         $skill->update($validated);
-
         return redirect()->route('admin.skills.index')->with('success', 'Skill updated successfully!');
     }
 
@@ -125,7 +130,9 @@ class AdminController extends Controller
         return redirect()->route('admin.skills.index')->with('success', 'Skill deleted successfully!');
     }
 
-    // Projects CRUD
+    // ==============================
+    // PROJECTS CRUD
+    // ==============================
     public function projectsIndex()
     {
         $projects = Project::all();
@@ -145,10 +152,15 @@ class AdminController extends Controller
             'features' => 'required|string',
             'tech_stack' => 'required|string',
             'github_link' => 'nullable|url',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        Project::create($validated);
+        if ($request->hasFile('image')) {
+            $filename = 'project-' . time() . '.' . $request->file('image')->getClientOriginalExtension();
+            $validated['image'] = $request->file('image')->storeAs('projects', $filename, 'public');
+        }
 
+        Project::create($validated);
         return redirect()->route('admin.projects.index')->with('success', 'Project created successfully!');
     }
 
@@ -168,16 +180,16 @@ class AdminController extends Controller
         ]);
 
         $project->update($validated);
-
         return redirect()->route('admin.projects.index')->with('success', 'Project updated successfully!');
     }
 
     public function projectsDestroy(Project $project)
     {
-        if ($project->image) {
+        if ($project->image && Storage::disk('public')->exists($project->image)) {
             Storage::disk('public')->delete($project->image);
         }
         $project->delete();
+
         return redirect()->route('admin.projects.index')->with('success', 'Project deleted successfully!');
     }
 
@@ -187,19 +199,22 @@ class AdminController extends Controller
             'image' => 'required|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
-        if ($project->image) {
+        // Hapus gambar lama jika ada
+        if ($project->image && Storage::disk('public')->exists($project->image)) {
             Storage::disk('public')->delete($project->image);
         }
 
-        $path = $request->file('image')->store('projects', 'public');
-        $project->image = $path;
+        // Simpan gambar baru dengan nama unik
+        $filename = 'project-' . time() . '.' . $request->file('image')->getClientOriginalExtension();
+        $project->image = $request->file('image')->storeAs('projects', $filename, 'public');
         $project->save();
 
         return back()->with('success', 'Project image updated successfully!');
     }
 
-    // Education CRUD
-    // Education CRUD - PERBAIKAN: ganti $education menjadi $educations
+    // ==============================
+    // EDUCATION CRUD
+    // ==============================
     public function educationIndex()
     {
         $educations = Education::all();
@@ -220,7 +235,6 @@ class AdminController extends Controller
         ]);
 
         Education::create($validated);
-
         return redirect()->route('admin.education.index')->with('success', 'Education created successfully!');
     }
 
@@ -238,7 +252,6 @@ class AdminController extends Controller
         ]);
 
         $education->update($validated);
-
         return redirect()->route('admin.education.index')->with('success', 'Education updated successfully!');
     }
 
@@ -248,7 +261,9 @@ class AdminController extends Controller
         return redirect()->route('admin.education.index')->with('success', 'Education deleted successfully!');
     }
 
-    // Certificates CRUD
+    // ==============================
+    // CERTIFICATES CRUD
+    // ==============================
     public function certificatesIndex()
     {
         $certificates = Certificate::all();
@@ -264,10 +279,15 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        Certificate::create($validated);
+        if ($request->hasFile('image')) {
+            $filename = 'certificate-' . time() . '.' . $request->file('image')->getClientOriginalExtension();
+            $validated['image'] = $request->file('image')->storeAs('certificates', $filename, 'public');
+        }
 
+        Certificate::create($validated);
         return redirect()->route('admin.certificates.index')->with('success', 'Certificate created successfully!');
     }
 
@@ -283,16 +303,16 @@ class AdminController extends Controller
         ]);
 
         $certificate->update($validated);
-
         return redirect()->route('admin.certificates.index')->with('success', 'Certificate updated successfully!');
     }
 
     public function certificatesDestroy(Certificate $certificate)
     {
-        if ($certificate->image) {
+        if ($certificate->image && Storage::disk('public')->exists($certificate->image)) {
             Storage::disk('public')->delete($certificate->image);
         }
         $certificate->delete();
+
         return redirect()->route('admin.certificates.index')->with('success', 'Certificate deleted successfully!');
     }
 
@@ -302,12 +322,14 @@ class AdminController extends Controller
             'image' => 'required|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
-        if ($certificate->image) {
+        // Hapus gambar lama jika ada
+        if ($certificate->image && Storage::disk('public')->exists($certificate->image)) {
             Storage::disk('public')->delete($certificate->image);
         }
 
-        $path = $request->file('image')->store('certificates', 'public');
-        $certificate->image = $path;
+        // Simpan gambar baru dengan nama unik
+        $filename = 'certificate-' . time() . '.' . $request->file('image')->getClientOriginalExtension();
+        $certificate->image = $request->file('image')->storeAs('certificates', $filename, 'public');
         $certificate->save();
 
         return back()->with('success', 'Certificate image updated successfully!');

@@ -2,14 +2,22 @@
 
 @section('content')
 @php
+    use Illuminate\Support\Facades\Storage;
     $profile = $profile ?? (object)['name' => 'Rifat Pratama', 'status' => 'Mahasiswa Teknik Informatika', 'domicile' => 'Sukabumi', 'about' => 'Loading...'];
 @endphp
 
 <!-- Hero -->
 <section class="py-16 text-center bg-gradient-to-b from-cyan-50 to-white dark:from-gray-900 dark:to-black">
     <div class="container mx-auto px-4">
-        <img src="{{ $profile->photo ? asset('storage/'.$profile->photo) : 'https://via.placeholder.com/150' }}" 
-             alt="Foto Profil" class="w-32 h-32 rounded-full mx-auto border-8 border-cyan-500 shadow-2xl">
+        @if($profile->photo && Storage::disk('public')->exists($profile->photo))
+            <img src="{{ asset('storage/' . $profile->photo) }}" 
+                 alt="Foto Profil" 
+                 class="w-32 h-32 rounded-full mx-auto border-8 border-cyan-500 shadow-2xl object-cover">
+        @else
+            <div class="w-32 h-32 rounded-full mx-auto border-8 border-cyan-500 shadow-2xl bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                <i class="bi bi-person text-4xl text-gray-400"></i>
+            </div>
+        @endif
         <h1 class="mt-6 text-4xl font-bold text-cyan-600 dark:text-yellow-400">{{ $profile->name }}</h1>
         <p class="text-xl text-gray-700 dark:text-gray-300">{{ $profile->status }}</p>
         <p class="text-lg text-gray-600 dark:text-gray-400">{{ $profile->domicile }}</p>
@@ -97,8 +105,14 @@
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             @foreach($projects as $project)
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition">
-                <img src="{{ $project->image ? asset('storage/'.$project->image) : 'https://via.placeholder.com/400x300' }}" 
-                     alt="{{ $project->name }}" class="w-full h-48 object-cover">
+                @if($project->image && Storage::disk('public')->exists($project->image))
+                    <img src="{{ asset('storage/' . $project->image) }}" 
+                         alt="{{ $project->name }}" class="w-full h-48 object-cover">
+                @else
+                    <div class="w-full h-48 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                        <i class="bi bi-image text-4xl text-gray-400"></i>
+                    </div>
+                @endif
                 <div class="p-6">
                     <h3 class="text-xl font-bold mb-2">{{ $project->name }}</h3>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mb-4">{{ $project->description }}</p>
@@ -145,12 +159,28 @@
         <div class="grid md:grid-cols-3 gap-8">
             @foreach($certificates as $cert)
             <div class="text-center">
-                <img src="{{ $cert->image ? asset('storage/'.$cert->image) : 'https://via.placeholder.com/300x400' }}" 
-                     alt="{{ $cert->name }}" class="w-full rounded-xl shadow-xl hover:scale-105 transition">
+                @if($cert->image && Storage::disk('public')->exists($cert->image))
+                    <img src="{{ asset('storage/' . $cert->image) }}" 
+                         alt="{{ $cert->name }}" class="w-full h-48 object-cover rounded-xl shadow-xl hover:scale-105 transition">
+                @else
+                    <div class="w-full h-48 bg-gray-200 dark:bg-gray-700 rounded-xl flex items-center justify-center">
+                        <i class="bi bi-award text-4xl text-gray-400"></i>
+                    </div>
+                @endif
                 <p class="mt-4 font-bold text-lg">{{ $cert->name }}</p>
             </div>
             @endforeach
         </div>
     </div>
 </section>
+
+<!-- Debug Section (Hapus setelah fix) -->
+@if($profile->photo)
+<div class="fixed bottom-4 left-4 bg-red-500 text-white p-3 rounded-lg text-xs z-50 max-w-xs">
+    <strong>Debug Info:</strong><br>
+    Photo Path: {{ $profile->photo }}<br>
+    Storage Exists: {{ Storage::disk('public')->exists($profile->photo) ? 'Yes' : 'No' }}<br>
+    Full URL: {{ asset('storage/' . $profile->photo) }}
+</div>
+@endif
 @endsection
