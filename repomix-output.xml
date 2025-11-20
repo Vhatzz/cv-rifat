@@ -292,24 +292,24 @@ class AdminController extends Controller
             'education' => Education::count(),
             'certificates' => Certificate::count(),
         ];
-        
+
         return view('admin.dashboard', compact('stats'));
     }
 
-    // Profile Management
+    // ==============================
+    // PROFILE MANAGEMENT
+    // ==============================
     public function profile()
     {
         $profile = Profile::first();
-        if (!$profile) {
-            $profile = new Profile();
-        }
+        if (!$profile) $profile = new Profile();
         return view('admin.profile', compact('profile'));
     }
 
     public function updateProfile(Request $request)
     {
         $profile = Profile::firstOrNew([]);
-        
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'domicile' => 'required|string|max:255',
@@ -324,29 +324,34 @@ class AdminController extends Controller
         $profile->fill($validated);
         $profile->save();
 
-        return redirect()->route('admin.profile')->with('success', 'Profile updated successfully!');
+        return back()->with('success', 'Profile updated successfully!');
     }
 
     public function updateProfilePhoto(Request $request)
     {
         $request->validate([
-            'photo' => 'required|image|mimes:jpeg,png,jpg|max:2048'
+            'photo' => 'required|image|mimes:jpg,jpeg,png|max:2048'
         ]);
 
-        $profile = Profile::firstOrNew([]);
-        
-        if ($profile->photo) {
+        $profile = Profile::firstOrCreate([]);
+
+        // jika ada gambar lama → hapus
+        if ($profile->photo && Storage::disk('public')->exists($profile->photo)) {
             Storage::disk('public')->delete($profile->photo);
         }
 
+        // simpan foto baru
         $path = $request->file('photo')->store('profile', 'public');
         $profile->photo = $path;
         $profile->save();
 
-        return back()->with('success', 'Profile photo updated successfully!');
+        return redirect()->back()->with('success', 'Foto profil berhasil diperbarui!');
     }
 
-    // Skills CRUD
+
+    // ==============================
+    // SKILLS CRUD
+    // ==============================
     public function skillsIndex()
     {
         $skills = Skill::all();
@@ -368,7 +373,6 @@ class AdminController extends Controller
         ]);
 
         Skill::create($validated);
-
         return redirect()->route('admin.skills.index')->with('success', 'Skill created successfully!');
     }
 
@@ -387,7 +391,6 @@ class AdminController extends Controller
         ]);
 
         $skill->update($validated);
-
         return redirect()->route('admin.skills.index')->with('success', 'Skill updated successfully!');
     }
 
@@ -397,7 +400,9 @@ class AdminController extends Controller
         return redirect()->route('admin.skills.index')->with('success', 'Skill deleted successfully!');
     }
 
-    // Projects CRUD
+    // ==============================
+    // PROJECTS CRUD
+    // ==============================
     public function projectsIndex()
     {
         $projects = Project::all();
@@ -417,10 +422,14 @@ class AdminController extends Controller
             'features' => 'required|string',
             'tech_stack' => 'required|string',
             'github_link' => 'nullable|url',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        Project::create($validated);
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('projects', 'public');
+        }
 
+        Project::create($validated);
         return redirect()->route('admin.projects.index')->with('success', 'Project created successfully!');
     }
 
@@ -440,16 +449,14 @@ class AdminController extends Controller
         ]);
 
         $project->update($validated);
-
         return redirect()->route('admin.projects.index')->with('success', 'Project updated successfully!');
     }
 
     public function projectsDestroy(Project $project)
     {
-        if ($project->image) {
-            Storage::disk('public')->delete($project->image);
-        }
+        if ($project->image) Storage::disk('public')->delete($project->image);
         $project->delete();
+
         return redirect()->route('admin.projects.index')->with('success', 'Project deleted successfully!');
     }
 
@@ -459,19 +466,17 @@ class AdminController extends Controller
             'image' => 'required|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
-        if ($project->image) {
-            Storage::disk('public')->delete($project->image);
-        }
+        if ($project->image) Storage::disk('public')->delete($project->image);
 
-        $path = $request->file('image')->store('projects', 'public');
-        $project->image = $path;
+        $project->image = $request->file('image')->store('projects', 'public');
         $project->save();
 
         return back()->with('success', 'Project image updated successfully!');
     }
 
-    // Education CRUD
-    // Education CRUD - PERBAIKAN: ganti $education menjadi $educations
+    // ==============================
+    // EDUCATION CRUD
+    // ==============================
     public function educationIndex()
     {
         $educations = Education::all();
@@ -492,7 +497,6 @@ class AdminController extends Controller
         ]);
 
         Education::create($validated);
-
         return redirect()->route('admin.education.index')->with('success', 'Education created successfully!');
     }
 
@@ -510,7 +514,6 @@ class AdminController extends Controller
         ]);
 
         $education->update($validated);
-
         return redirect()->route('admin.education.index')->with('success', 'Education updated successfully!');
     }
 
@@ -520,7 +523,9 @@ class AdminController extends Controller
         return redirect()->route('admin.education.index')->with('success', 'Education deleted successfully!');
     }
 
-    // Certificates CRUD
+    // ==============================
+    // CERTIFICATES CRUD
+    // ==============================
     public function certificatesIndex()
     {
         $certificates = Certificate::all();
@@ -536,10 +541,14 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        Certificate::create($validated);
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('certificates', 'public');
+        }
 
+        Certificate::create($validated);
         return redirect()->route('admin.certificates.index')->with('success', 'Certificate created successfully!');
     }
 
@@ -555,16 +564,14 @@ class AdminController extends Controller
         ]);
 
         $certificate->update($validated);
-
         return redirect()->route('admin.certificates.index')->with('success', 'Certificate updated successfully!');
     }
 
     public function certificatesDestroy(Certificate $certificate)
     {
-        if ($certificate->image) {
-            Storage::disk('public')->delete($certificate->image);
-        }
+        if ($certificate->image) Storage::disk('public')->delete($certificate->image);
         $certificate->delete();
+
         return redirect()->route('admin.certificates.index')->with('success', 'Certificate deleted successfully!');
     }
 
@@ -574,12 +581,9 @@ class AdminController extends Controller
             'image' => 'required|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
-        if ($certificate->image) {
-            Storage::disk('public')->delete($certificate->image);
-        }
+        if ($certificate->image) Storage::disk('public')->delete($certificate->image);
 
-        $path = $request->file('image')->store('certificates', 'public');
-        $certificate->image = $path;
+        $certificate->image = $request->file('image')->store('certificates', 'public');
         $certificate->save();
 
         return back()->with('success', 'Certificate image updated successfully!');
@@ -4203,17 +4207,17 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 <!-- Skills Tabs -->
 <div class="mb-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
     <div class="border-b border-gray-200 dark:border-gray-700">
-        <nav class="-mb-px flex space-x-8">
-            <button onclick="showTab('all')" class="tab-button py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap text-cyan-500 border-cyan-500">
+        <nav class="-mb-px flex space-x-8" role="tablist" aria-label="Skill categories">
+            <button onclick="showTab(event, 'all')" data-type="all" class="tab-button py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap text-cyan-500 border-cyan-500" role="tab" aria-selected="true">
                 All Skills ({{ $skills->count() }})
             </button>
-            <button onclick="showTab('hard')" class="tab-button py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300">
+            <button onclick="showTab(event, 'hard')" data-type="hard" class="tab-button py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300" role="tab" aria-selected="false">
                 Hard Skills ({{ $skills->where('type', 'hard')->count() }})
             </button>
-            <button onclick="showTab('soft')" class="tab-button py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300">
+            <button onclick="showTab(event, 'soft')" data-type="soft" class="tab-button py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300" role="tab" aria-selected="false">
                 Soft Skills ({{ $skills->where('type', 'soft')->count() }})
             </button>
-            <button onclick="showTab('tool')" class="tab-button py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300">
+            <button onclick="showTab(event, 'tool')" data-type="tool" class="tab-button py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300" role="tab" aria-selected="false">
                 Tools ({{ $skills->where('type', 'tool')->count() }})
             </button>
         </nav>
@@ -4239,54 +4243,56 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
                     <td class="px-6 py-4">
                         <div class="flex items-center">
                             @if($skill->logo_url)
-                                <img src="{{ $skill->logo_url }}" alt="{{ $skill->name }}" class="w-8 h-8 rounded mr-3">
+                                <img src="{{ $skill->logo_url }}" alt="{{ $skill->name }}" class="w-8 h-8 rounded mr-3 object-contain">
                             @else
-                                <div class="w-8 h-8 rounded mr-3 bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
-                                    <i class="bi bi-star text-gray-500"></i>
+                                <div class="w-8 h-8 rounded mr-3 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400">
+                                    <i class="bi bi-patch-question"></i>
                                 </div>
                             @endif
-                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $skill->name }}</div>
+                            <div>
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $skill->name }}</div>
+                                @if($skill->type === 'tool' && $skill->logo_url)
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">Tool</div>
+                                @endif
+                            </div>
                         </div>
                     </td>
+
                     <td class="px-6 py-4">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                            {{ $skill->type == 'hard' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 
-                               ($skill->type == 'soft' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 
-                               'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200') }}">
-                            {{ ucfirst($skill->type) }} Skill
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                            {{ ucfirst($skill->type) }}
                         </span>
                     </td>
+
                     <td class="px-6 py-4">
                         @if($skill->level)
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                            {{ $skill->level == 'Advanced' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 
-                               ($skill->level == 'Intermediate' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : 
-                               'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200') }}">
-                            {{ $skill->level }}
-                        </span>
+                            <span class="text-sm text-gray-700 dark:text-gray-300">{{ $skill->level }}</span>
                         @else
-                        <span class="text-gray-400 text-sm">-</span>
+                            <span class="text-gray-400 text-sm">-</span>
                         @endif
                     </td>
+
                     <td class="px-6 py-4">
                         @if($skill->logo_url)
                             <div class="w-10 h-10 rounded bg-gray-100 dark:bg-gray-600 flex items-center justify-center">
-                                <img src="{{ $skill->logo_url }}" alt="{{ $skill->name }}" class="w-6 h-6">
+                                <img src="{{ $skill->logo_url }}" alt="{{ $skill->name }}" class="w-6 h-6 object-contain">
                             </div>
                         @else
                             <span class="text-gray-400 text-sm">No logo</span>
                         @endif
                     </td>
+
                     <td class="px-6 py-4">
                         <div class="flex justify-center space-x-3">
-                            <a href="{{ route('admin.skills.edit', $skill) }}" 
+                            <a href="{{ route('admin.skills.edit', $skill) }}"
                                class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 transition duration-200 flex items-center px-3 py-1 rounded border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/30">
                                 <i class="bi bi-pencil-square mr-2"></i> Edit
                             </a>
+
                             <form method="POST" action="{{ route('admin.skills.destroy', $skill) }}" class="inline">
-                                @csrf 
+                                @csrf
                                 @method('DELETE')
-                                <button type="submit" 
+                                <button type="submit"
                                         onclick="return confirm('Are you sure you want to delete this skill?')"
                                         class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition duration-200 flex items-center px-3 py-1 rounded border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30">
                                     <i class="bi bi-trash mr-2"></i> Delete
@@ -4312,20 +4318,29 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
     @endif
 </div>
 
+<!-- Tab scripting (fixed: explicit event parameter, better selection handling) -->
 <script>
-function showTab(type) {
-    // Update active tab
+function showTab(event, type) {
+    // determine the button element (supports being called from .click())
+    const targetBtn = event ? (event.currentTarget || event.target) : document.querySelector(`.tab-button[data-type="${type}"]`);
+    if (!targetBtn) return;
+
+    // remove active state from all tabs
     document.querySelectorAll('.tab-button').forEach(button => {
         button.classList.remove('text-cyan-500', 'border-cyan-500');
         button.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent');
+        button.setAttribute('aria-selected', 'false');
     });
-    
-    event.target.classList.add('text-cyan-500', 'border-cyan-500');
-    event.target.classList.remove('text-gray-500', 'dark:text-gray-400', 'border-transparent');
 
-    // Show/hide skills
+    // set active state on clicked tab
+    targetBtn.classList.add('text-cyan-500', 'border-cyan-500');
+    targetBtn.classList.remove('text-gray-500', 'dark:text-gray-400', 'border-transparent');
+    targetBtn.setAttribute('aria-selected', 'true');
+
+    // show/hide rows by data-type
     document.querySelectorAll('.skill-row').forEach(row => {
-        if (type === 'all' || row.dataset.type === type) {
+        const rowType = row.dataset.type;
+        if (type === 'all' || rowType === type) {
             row.style.display = '';
         } else {
             row.style.display = 'none';
@@ -4333,9 +4348,10 @@ function showTab(type) {
     });
 }
 
-// Initialize with all skills shown
+// Initialize: click the first tab (All Skills) to set initial state
 document.addEventListener('DOMContentLoaded', function() {
-    showTab('all');
+    const firstTab = document.querySelector('.tab-button');
+    if (firstTab) firstTab.click();
 });
 </script>
 @endsection
@@ -4606,224 +4622,115 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <file path="resources/views/layouts/admin.blade.php">
 <!DOCTYPE html>
-<html lang="id" class="scroll-smooth">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Rifat CV</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <title>Admin Panel</title>
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>
-        .sidebar-scroll::-webkit-scrollbar {
-            width: 4px;
-        }
-        .sidebar-scroll::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        .sidebar-scroll::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 4px;
-        }
-        .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-            background: #a1a1a1;
-        }
-        .dark .sidebar-scroll::-webkit-scrollbar-track {
-            background: #374151;
-        }
-        .dark .sidebar-scroll::-webkit-scrollbar-thumb {
-            background: #6b7280;
-        }
-        .dark .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-            background: #9ca3af;
-        }
-        
-        /* Pastikan konten utama tidak tertutup */
-        .main-content {
-            margin-top: 4rem; /* Height navbar */
-            margin-left: 16rem; /* Width sidebar */
-            min-height: calc(100vh - 4rem);
-        }
-        
-        @media (max-width: 768px) {
-            .main-content {
-                margin-left: 0;
-            }
-        }
-        
-        /* Pastikan tombol visible */
-        .action-buttons {
-            position: relative;
-            z-index: 10;
-        }
-    </style>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
 
-    <!-- Navigation Bar -->
-    <nav class="bg-white dark:bg-gray-800 shadow-lg fixed w-full top-0 z-50 border-b border-gray-200 dark:border-gray-700">
-        <div class="px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <!-- Logo & Mobile Menu Button -->
-                <div class="flex items-center">
-                    <button id="sidebar-toggle" class="md:hidden text-gray-600 dark:text-gray-300 hover:text-cyan-500 mr-3">
-                        <i class="bi bi-list text-xl"></i>
-                    </button>
-                    <div class="flex items-center">
-                        <i class="bi bi-person-badge text-cyan-500 text-2xl mr-3"></i>
-                        <span class="text-xl font-bold text-cyan-500 hidden sm:block">Admin Panel</span>
-                    </div>
-                </div>
+<body class="bg-gray-100 dark:bg-gray-900">
 
-                <!-- Desktop Menu -->
-                <div class="hidden md:flex items-center space-x-4">
-                    <a href="{{ route('home') }}" target="_blank" class="flex items-center text-gray-600 dark:text-gray-300 hover:text-cyan-500 dark:hover:text-cyan-400 transition px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-                        <i class="bi bi-eye mr-2"></i> View CV
-                    </a>
-                    <form method="POST" action="{{ route('logout') }}" class="inline">
-                        @csrf
-                        <button type="submit" class="flex items-center text-gray-600 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="bi bi-box-arrow-right mr-2"></i> Logout
-                        </button>
-                    </form>
-                </div>
+<div x-data="{ sidebarOpen: false }" class="min-h-screen flex">
 
-                <!-- Mobile menu button -->
-                <div class="md:hidden">
-                    <button type="button" id="mobile-menu-button" class="text-gray-600 dark:text-gray-300">
-                        <i class="bi bi-three-dots-vertical text-xl"></i>
-                    </button>
-                </div>
-            </div>
+    <!-- Sidebar -->
+    <aside class="bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 w-64 fixed inset-y-0 z-30 transform transition-transform duration-200 ease-in-out"
+           :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
+
+        <!-- Branding -->
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h1 class="text-xl font-bold text-gray-800 dark:text-white">Admin Panel</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Portfolio Dashboard</p>
         </div>
 
-        <!-- Mobile Menu -->
-        <div id="mobile-menu" class="md:hidden hidden bg-white dark:bg-gray-800 shadow-lg border-t border-gray-200 dark:border-gray-700">
-            <div class="px-4 py-2 space-y-1">
-                <a href="{{ route('home') }}" target="_blank" class="flex items-center text-gray-600 dark:text-gray-300 hover:text-cyan-500 dark:hover:text-cyan-400 transition px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-                    <i class="bi bi-eye mr-3"></i> View CV
-                </a>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="flex items-center w-full text-left text-gray-600 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-                        <i class="bi bi-box-arrow-right mr-3"></i> Logout
-                    </button>
-                </form>
-            </div>
-        </div>
-    </nav>
+        <!-- Navigation -->
+        <nav class="p-4 space-y-1 font-medium">
 
-    <!-- Sidebar and Main Content -->
-    <div class="flex">
-        <!-- Sidebar Overlay -->
-        <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden hidden"></div>
+            <a href="{{ route('admin.dashboard') }}"
+               class="flex items-center px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 
+               text-gray-700 dark:text-gray-300 {{ request()->routeIs('admin.dashboard') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+                <i class="bi bi-speedometer2 mr-3"></i> Dashboard
+            </a>
 
-        <!-- Sidebar -->
-        <div id="sidebar" class="w-64 bg-white dark:bg-gray-800 shadow-lg fixed h-screen overflow-y-auto sidebar-scroll transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-50 border-r border-gray-200 dark:border-gray-700">
-            <!-- Navigation Content -->
-            <div class="pt-16 pb-20"> <!-- Padding top untuk navbar, bottom untuk footer -->
-                <nav class="mt-6 px-4 space-y-2">
-                    <a href="{{ route('admin.dashboard') }}" class="flex items-center px-4 py-3 rounded-lg text-sm font-medium {{ request()->routeIs('admin.dashboard') ? 'bg-cyan-500 text-white shadow-md' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }} transition duration-200">
-                        <i class="bi bi-speedometer2 mr-3 text-lg"></i> Dashboard
-                    </a>
-                    <a href="{{ route('admin.profile') }}" class="flex items-center px-4 py-3 rounded-lg text-sm font-medium {{ request()->routeIs('admin.profile') ? 'bg-cyan-500 text-white shadow-md' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }} transition duration-200">
-                        <i class="bi bi-person mr-3 text-lg"></i> Profile
-                    </a>
-                    <a href="{{ route('admin.skills.index') }}" class="flex items-center px-4 py-3 rounded-lg text-sm font-medium {{ request()->routeIs('admin.skills.*') ? 'bg-cyan-500 text-white shadow-md' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }} transition duration-200">
-                        <i class="bi bi-star mr-3 text-lg"></i> Skills
-                    </a>
-                    <a href="{{ route('admin.projects.index') }}" class="flex items-center px-4 py-3 rounded-lg text-sm font-medium {{ request()->routeIs('admin.projects.*') ? 'bg-cyan-500 text-white shadow-md' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }} transition duration-200">
-                        <i class="bi bi-folder mr-3 text-lg"></i> Projects
-                    </a>
-                    <a href="{{ route('admin.education.index') }}" class="flex items-center px-4 py-3 rounded-lg text-sm font-medium {{ request()->routeIs('admin.education.*') ? 'bg-cyan-500 text-white shadow-md' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }} transition duration-200">
-                        <i class="bi bi-mortarboard mr-3 text-lg"></i> Education
-                    </a>
-                    <a href="{{ route('admin.certificates.index') }}" class="flex items-center px-4 py-3 rounded-lg text-sm font-medium {{ request()->routeIs('admin.certificates.*') ? 'bg-cyan-500 text-white shadow-md' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }} transition duration-200">
-                        <i class="bi bi-award mr-3 text-lg"></i> Certificates
-                    </a>
-                </nav>
-            </div>
+            <a href="{{ route('admin.projects.index') }}"
+               class="flex items-center px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+               text-gray-700 dark:text-gray-300 {{ request()->routeIs('admin.projects*') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+                <i class="bi bi-kanban mr-3"></i> Projects
+            </a>
 
-            <!-- Fixed Footer -->
-            <div class="absolute bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-                <div class="text-xs text-gray-500 dark:text-gray-400 text-center">
-                    <p>Admin Panel v1.0</p>
-                    <p class="mt-1">Rifat Pratama CV</p>
-                </div>
-            </div>
-        </div>
+            <a href="{{ route('admin.education.index') }}"
+               class="flex items-center px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+               text-gray-700 dark:text-gray-300 {{ request()->routeIs('admin.education*') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+                <i class="bi bi-mortarboard mr-3"></i> Education
+            </a>
 
-        <!-- Main Content -->
-        <div class="main-content flex-1 transition-all duration-300">
-            <div class="p-6">
-                @if(session('success'))
-                    <div class="mb-6 p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-lg dark:bg-green-900/30 dark:border-green-400 dark:text-green-300 flex items-center">
-                        <i class="bi bi-check-circle-fill mr-3 text-lg"></i>
-                        <div>
-                            <span class="font-medium">Success!</span> {{ session('success') }}
-                        </div>
-                    </div>
-                @endif
+            <a href="{{ route('admin.skills.index') }}"
+               class="flex items-center px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+               text-gray-700 dark:text-gray-300 {{ request()->routeIs('admin.skills*') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+                <i class="bi bi-lightning-charge mr-3"></i> Skills
+            </a>
 
-                @if($errors->any())
-                    <div class="mb-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-lg dark:bg-red-900/30 dark:border-red-400 dark:text-red-300">
-                        <div class="flex items-center mb-2">
-                            <i class="bi bi-exclamation-circle-fill mr-2"></i>
-                            <span class="font-medium">Please fix the following errors:</span>
-                        </div>
-                        <ul class="list-disc pl-5 mt-2 space-y-1">
-                            @foreach($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
+            <a href="{{ route('admin.certificates.index') }}"
+               class="flex items-center px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+               text-gray-700 dark:text-gray-300 {{ request()->routeIs('admin.certificates*') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+                <i class="bi bi-award mr-3"></i> Certificates
+            </a>
 
-                @yield('content')
-            </div>
-        </div>
-    </div>
+            <a href="{{ route('admin.profile') }}"
+               class="flex items-center px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+               text-gray-700 dark:text-gray-300 {{ request()->routeIs('admin.profile') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+                <i class="bi bi-person-circle mr-3"></i> Profile
+            </a>
 
-    <script>
-        // Mobile menu toggle
-        document.getElementById('mobile-menu-button').addEventListener('click', function() {
-            const menu = document.getElementById('mobile-menu');
-            menu.classList.toggle('hidden');
-        });
+            <form action="{{ route('logout') }}" method="POST" class="mt-4">
+                @csrf
+                <button class="w-full flex items-center px-4 py-2 rounded-lg bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:text-red-400">
+                    <i class="bi bi-box-arrow-right mr-3"></i> Logout
+                </button>
+            </form>
 
-        // Sidebar toggle for mobile
-        const sidebarToggle = document.getElementById('sidebar-toggle');
-        const sidebar = document.getElementById('sidebar');
-        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        </nav>
+    </aside>
 
-        sidebarToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('-translate-x-full');
-            sidebarOverlay.classList.toggle('hidden');
-        });
+    <!-- Overlay (mobile) -->
+    <div class="fixed inset-0 bg-black/40 z-20 md:hidden"
+         x-show="sidebarOpen"
+         x-transition.opacity
+         @click="sidebarOpen = false"></div>
 
-        sidebarOverlay.addEventListener('click', function() {
-            sidebar.classList.add('-translate-x-full');
-            sidebarOverlay.classList.add('hidden');
-        });
 
-        // Close mobile menu when clicking outside
-        document.addEventListener('click', function(event) {
-            const mobileMenu = document.getElementById('mobile-menu');
-            const mobileMenuButton = document.getElementById('mobile-menu-button');
+    <!-- Main Content -->
+    <main class="flex-1 md:ml-64">
+
+        <!-- Top Navigation Bar -->
+        <header class="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
             
-            if (!mobileMenu.contains(event.target) && !mobileMenuButton.contains(event.target)) {
-                mobileMenu.classList.add('hidden');
-            }
-        });
+            <button @click="sidebarOpen = true" class="md:hidden text-gray-700 dark:text-gray-300 text-2xl">
+                <i class="bi bi-list"></i>
+            </button>
 
-        // Auto-hide mobile menu on window resize
-        window.addEventListener('resize', function() {
-            if (window.innerWidth >= 768) {
-                sidebar.classList.remove('-translate-x-full');
-                sidebarOverlay.classList.add('hidden');
-                document.getElementById('mobile-menu').classList.add('hidden');
-            }
-        });
-    </script>
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white">
+                Admin Dashboard
+            </h2>
+
+            <button class="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white text-xl">
+                <i class="bi bi-brightness-high"></i>
+            </button>
+        </header>
+
+        <div class="p-6">
+            @yield('content')
+        </div>
+
+    </main>
+
+</div>
+
+<script src="//unpkg.com/alpinejs" defer></script>
 </body>
 </html>
 </file>
