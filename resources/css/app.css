@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import 'bootstrap/dist/css/bootstrap.min.css';
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+body { 
+    font-family: 'Poppins', sans-serif; 
+}
+
+/* Custom Colors */
+:root {
+    --light-cyan: #06b6d4;
+    --dark-yellow: #eab308;
+}
+
+.bg-light-cyan { background-color: var(--light-cyan); }
+.text-light-cyan { color: var(--light-cyan); }
+.bg-dark-yellow { background-color: var(--dark-yellow); }
+.text-dark-yellow { color: var(--dark-yellow); }
+
+/* Animations */
+.hover\:scale-105:hover { transform: scale(1.05); }
+.group:hover .group-hover\:scale-110 { transform: scale(1.1); }
+
+/* Warna level skill lebih kontras */
+.text-green-600 { color: #16a34a; }
+.text-yellow-600 { color: #ca8a04; }
+.text-red-600 { color: #dc2626; }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+.animate-pulse { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+.hover\:rotate-2:hover { transform: rotate(2deg); }
+
+/* Custom utilities */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Smooth transitions */
+.transition-all {
+    transition: all 0.3s ease;
+}
+
+/* Admin Panel Specific Styles */
+.admin-content {
+    margin-top: 4rem;
+    margin-left: 16rem;
+}
+
+@media (max-width: 768px) {
+    .admin-content {
+        margin-left: 0;
+    }
+}
+
+/* Smooth transitions */
+.sidebar-transition {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Card hover effects */
+.hover-lift:hover {
+    transform: translateY(-2px);
+    transition: all 0.2s ease-in-out;
+}
+
+/* Custom border colors for better visual hierarchy */
+.border-light {
+    border-color: rgba(229, 231, 235, 0.8);
+}
+
+.dark .border-light {
+    border-color: rgba(55, 65, 81, 0.8);
+}
